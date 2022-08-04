@@ -22,6 +22,11 @@ namespace JS::AST {
 		return get_name();
 	}
 
+	std::string BinaryExpression::to_string()
+	{
+		return get_name() + " " + m_op;
+	}
+
 	std::string Literal::to_string()
 	{
 		return get_name();
@@ -30,11 +35,6 @@ namespace JS::AST {
 	std::string NumericLiteral::to_string()
 	{
 		return "NumericLiteral " + std::to_string(m_value);
-	}
-
-	std::string Operator::to_string()
-	{
-		return get_name();
 	}
 
 	void print_ast_helper(Node* node, int indent)
