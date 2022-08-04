@@ -31,6 +31,17 @@ namespace JS::AST
 	{
 	public:
 		Expression() : Node("Expression") {}
+		Expression(std::string str) : Node(str) {}
+		std::string to_string() override;
+	};
+
+	class BinaryExpression : public Expression
+	{
+	public:
+		std::string m_op;
+		Expression m_lhs;
+		Expression m_rhs;
+		BinaryExpression(std::string op) : Expression("BinaryExpression"), m_op(op) {}
 		std::string to_string() override;
 	};
 
@@ -47,13 +58,6 @@ namespace JS::AST
 		int m_value;
 	public:
 		NumericLiteral(int x) : Literal(), m_value(x) {}
-		std::string to_string() override;
-	};
-
-	class Operator : public Node
-	{
-	public:
-		Operator(std::string op) : Node(op) {}
 		std::string to_string() override;
 	};
 
