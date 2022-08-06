@@ -2,65 +2,152 @@
 
 #include <string>
 #include <vector>
+#include "Forward.h"
+#include "Value.h"
 
-namespace JS::AST
+namespace JS
 {
-	class Node
+	class ASTNode
 	{
 	public:
-		std::vector<Node*> m_children;
+		virtual ~ASTNode() {}
+		virtual const char* class_name() const = 0;
+		virtual Value execute(Interpreter&) const = 0;
+		virtual void dump(int indent) const;
 
-		Node(std::string name) : m_name(name) {}
-		std::string get_name() const;
-		void add_child(Node* child);
-		virtual std::string to_string() = 0;
+	protected:
+		ASTNode() {}
 
 	private:
+
+	};
+
+	class ScopeNode : public ASTNode
+	{
+	public:
+		template<typename T, typename... Args>
+		T& append(Args&&... args)
+		{
+			auto child = new T(args...);
+			m_children.push_back(child);
+			return (T&)m_children.back();
+		}
+		const std::vector<ASTNode*>& children() const { return m_children; }
+		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
+	protected:
+		ScopeNode() {}
+
+	private:
+		std::vector<ASTNode*> m_children;
+
+	};
+
+	class Program : public ScopeNode
+	{
+	public:
+		explicit Program() {}
+
+	private:
+		virtual const char* class_name() const override { return "Program"; }
+	};
+
+	class BlockStatement : public ScopeNode
+	{
+	public:
+		BlockStatement() {}
+
+	private:
+		virtual const char* class_name() const override { return "BlockStatement"; }
+	};
+
+	class FunctionDeclaration : public ASTNode
+	{
+	public:
+		FunctionDeclaration(std::string name, ScopeNode* body) : m_name(name), m_body(body) {}
+		std::string name() const { return m_name; }
+		const ScopeNode& body() const { return *m_body; }
+		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
+
+	private:
+		virtual const char* class_name() const override { return "FunctionDeclaration"; }
 		std::string m_name;
-	
+		ScopeNode* m_body;
 	};
 
-	class Program : public Node
+	class Expression : public ASTNode
 	{
 	public:
-		Program() : Node("Program") {}
-		std::string to_string() override;
+
 	};
 
-	class Expression : public Node
+	class ReturnStatement : public ASTNode
 	{
 	public:
-		Expression() : Node("Expression") {}
-		Expression(std::string str) : Node(str) {}
-		std::string to_string() override;
+		explicit ReturnStatement(Expression* argument) : m_argument(argument) {}
+		const Expression& argument() const { return *m_argument; }
+		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
+	private:
+		virtual const char* class_name() const override { return "ReturnStatement"; }
+		Expression* m_argument;
+	};
+
+	enum class BinaryOp
+	{
+		Plus,
+		Minus
 	};
 
 	class BinaryExpression : public Expression
 	{
 	public:
-		std::string m_op;
-		Expression m_lhs;
-		Expression m_rhs;
-		BinaryExpression(std::string op) : Expression("BinaryExpression"), m_op(op) {}
-		std::string to_string() override;
-	};
+		BinaryExpression(BinaryOp op, Expression* lhs, Expression* rhs)
+			: m_op(op)
+			, m_lhs(lhs)
+			, m_rhs(rhs)
+		{}
+		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
 
-	class Literal : public Node
-	{
-	public:
-		Literal() : Node("Literal") {}
-		std::string to_string() override;
-	};
-
-	class NumericLiteral : public Literal
-	{
 	private:
-		int m_value;
-	public:
-		NumericLiteral(int x) : Literal(), m_value(x) {}
-		std::string to_string() override;
+		virtual const char* class_name() const override { return "BinaryExpression"; }
+
+		BinaryOp m_op;
+		Expression* m_lhs;
+		Expression* m_rhs;
 	};
 
-	void print_ast_helper(Node* node, int indent);
-	void print_ast(Node* node);
+	class Literal : public Expression
+	{
+	public:
+		explicit Literal(Value value) : m_value(value) {}
+		virtual Value execute(Interpreter&) const override { return m_value; }
+		virtual void dump(int indent) const override;
+
+	private:
+		virtual const char* class_name() const override { return "Literal"; }
+		Value m_value;
+	};
+
+	class ExpressionStatement : public ASTNode
+	{
+	public:
+		virtual Value execute(Interpreter&) const override;
+	private:
+		virtual const char* class_name() const override { return "ExpressionStatement"; }
+	};
+
+	class CallExpression : public Expression
+	{
+	public:
+		explicit CallExpression(std::string name) : m_name(name) {}
+		virtual Value execute(Interpreter&) const override;
+		const std::string& name() const { return m_name; }
+		virtual void dump(int indent) const override;
+	private:
+		virtual const char* class_name() const override { return "CallExpression"; }
+		std::string m_name;
+	};
 }

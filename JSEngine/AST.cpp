@@ -1,53 +1,123 @@
 #include <iostream>
 #include "AST.h"
+#include "Function.h"
+#include "Interpreter.h"
+#include "Object.h"
+#include "Value.h"
 
-namespace JS::AST {
-	std::string Node::get_name() const
+namespace JS
+{
+	Value ScopeNode::execute(Interpreter& interpreter) const
 	{
-		return m_name;
+		return	interpreter.run(*this);
 	}
 
-	void Node::add_child(Node* child)
+	Value FunctionDeclaration::execute(Interpreter& interpreter) const
 	{
-		m_children.push_back(child);
+		auto* function = new Function(name(), body());
+		interpreter.global_object().put(m_name, Value(function));
+		return Value(function);
 	}
 
-	std::string Program::to_string()
+	Value CallExpression::execute(Interpreter& interpreter) const
 	{
-		return get_name();
+		auto callee = interpreter.global_object().get(name());
+		_ASSERT(callee.is_object());
+		Object* callee_object = callee.as_object();
+		_ASSERT(callee_object->is_function());
+		auto& function = (Function&)(*callee_object);
+		return interpreter.run(function.body());
 	}
 
-	std::string Expression::to_string()
+	Value ReturnStatement::execute(Interpreter& interpreter) const
 	{
-		return get_name();
+		auto value = argument().execute(interpreter);
+		interpreter.do_return();
+		return value;
 	}
 
-	std::string BinaryExpression::to_string()
+	Value add(Value lhs, Value rhs)
 	{
-		return get_name() + " " + m_op;
+		_ASSERT(lhs.is_number());
+		_ASSERT(rhs.is_number());
+		return Value(lhs.as_double() + rhs.as_double());
 	}
 
-	std::string Literal::to_string()
+	Value sub(Value lhs, Value rhs)
 	{
-		return get_name();
+		_ASSERT(lhs.is_number());
+		_ASSERT(rhs.is_number());
+		return Value(lhs.as_double() - rhs.as_double());
 	}
 
-	std::string NumericLiteral::to_string()
+	Value BinaryExpression::execute(Interpreter& interpreter) const
 	{
-		return "NumericLiteral " + std::to_string(m_value);
+		auto lhs_result = m_lhs->execute(interpreter);
+		auto rhs_result = m_rhs->execute(interpreter);
+
+		switch (m_op)
+		{
+		case BinaryOp::Plus:
+			return add(lhs_result, rhs_result);
+		case BinaryOp::Minus:
+			return sub(lhs_result, rhs_result);
+		default:
+			_ASSERT(false);
+			return add(lhs_result, rhs_result);
+		}
+
+		_ASSERT(false);
 	}
 
-	void print_ast_helper(Node* node, int indent)
+	void print_indent(int indent)
 	{
-		for (size_t i = 0; i < indent; i++) std::cout << "  ";
-		std::cout << node->to_string() << '\n';
-		if (node->m_children.empty()) return;
-		for (auto i : node->m_children) print_ast_helper(i, indent + 1);
+		for (size_t i = 0; i < 2 * indent; i++) std::cout << " ";
 	}
 
-	void print_ast(Node* node)
+	void ASTNode::dump(int indent) const
 	{
-		print_ast_helper(node, 0);
+		print_indent(indent);
+		std::cout << class_name() << std::endl;
 	}
 
+	void ScopeNode::dump(int indent) const
+	{
+		ASTNode::dump(indent);
+		for (auto& child : children())
+		{
+			child->dump(indent + 1);
+		}
+	}
+
+	void BinaryExpression::dump(int indent) const
+	{
+		ASTNode::dump(indent);
+		m_lhs->dump(indent + 1);
+		m_rhs->dump(indent + 1);
+	}
+
+	void CallExpression::dump(int indent) const
+	{
+		print_indent(indent);
+		std::cout << class_name() << " " << name() << std::endl;
+	}
+
+	void Literal::dump(int indent) const
+	{
+		print_indent(indent);
+		std::cout << (uint32_t) m_value.as_double() << std::endl;
+	}
+
+	void FunctionDeclaration::dump(int indent) const
+	{
+		print_indent(indent);
+		std::cout << class_name() << " " << name() << std::endl;
+		body().dump(indent + 1);
+	}
+
+	void ReturnStatement::dump(int indent) const
+	{
+		ASTNode::dump(indent);
+		argument().dump(indent + 1);
+	}
 }
