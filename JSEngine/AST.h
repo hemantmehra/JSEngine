@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "Forward.h"
+#include "Value.h"
 
 namespace JS
 {
@@ -11,7 +12,7 @@ namespace JS
 	public:
 		virtual ~ASTNode() {}
 		virtual const char* class_name() const = 0;
-		virtual Value execute(Interpreter&) const;
+		virtual Value execute(Interpreter&) const = 0;
 
 	protected:
 		ASTNode() {}
@@ -27,10 +28,11 @@ namespace JS
 		T& append(Args&&... args)
 		{
 			auto child = new T(args...);
-			m_children.append(child);
-			return m_children.back();
+			m_children.push_back(child);
+			return (T&)m_children.back();
 		}
 		const std::vector<ASTNode*>& children() const { return m_children; }
+		virtual Value execute(Interpreter&) const override;
 	protected:
 		ScopeNode() {}
 
@@ -81,8 +83,8 @@ namespace JS
 	{
 	public:
 		explicit ReturnStatement(Expression* argument) : m_argument(argument) {}
-		const Expression* argument() const { return m_argument; }
-
+		const Expression& argument() const { return *m_argument; }
+		virtual Value execute(Interpreter&) const override;
 	private:
 		virtual const char* class_name() const override { return "ReturnStatement"; }
 		Expression* m_argument;
@@ -116,7 +118,7 @@ namespace JS
 	{
 	public:
 		explicit Literal(Value value) : m_value(value) {}
-		virtual Value execute(Interpreter&) override { return m_value; }
+		virtual Value execute(Interpreter&) const override { return m_value; }
 
 	private:
 		virtual const char* class_name() const override { return "Literal"; }
@@ -125,13 +127,20 @@ namespace JS
 
 	class ExpressionStatement : public ASTNode
 	{
+	public:
+		virtual Value execute(Interpreter&) const override;
 	private:
 		virtual const char* class_name() const override { return "ExpressionStatement"; }
 	};
 
 	class CallExpression : public Expression
 	{
+	public:
+		explicit CallExpression(std::string name) : m_name(name) {}
+		virtual Value execute(Interpreter&) const override;
+		const std::string& name() const { return m_name; }
 	private:
 		virtual const char* class_name() const override { return "CallExpression"; }
+		std::string m_name;
 	};
 }

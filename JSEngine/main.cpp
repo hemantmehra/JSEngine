@@ -20,13 +20,11 @@ int main()
 	);
 
 	program->append<JS::FunctionDeclaration>("foo", block);
-	program->append<JS::ExpressionStatement>(
-			new JS::CallExpression("foo")
-		);
+	program->append<JS::CallExpression>("foo");
 
 	JS::Interpreter interpreter;
 	auto result = interpreter.run(*program);
 	
-	std::cout << "Interpreter returned " << result;
+	std::cout << "Interpreter returned " << result << std::endl;
 	return 0;
 }
