@@ -3,16 +3,30 @@
 
 #include <iostream>
 #include "AST.h"
+#include "Interpreter.h"
+#include "Object.h"
+#include "Value.h"
 
 int main()
 {
-	//JS::AST::Node* p = new JS::AST::Program();
-	JS::AST::Node* e = new JS::AST::BinaryExpression("+");
+	auto program = new JS::Program();
+	auto block = new JS::BlockStatement();
+	block->append<JS::ReturnStatement>(
+		new JS::BinaryExpression(
+			JS::BinaryOp::Plus,
+			new JS::Literal(JS::Value((uint32_t)1)),
+			new JS::Literal(JS::Value((uint32_t)2))
+		)
+	);
 
-	//p->add_child(e);
-	e->add_child(new JS::AST::NumericLiteral(100));
-	e->add_child(new JS::AST::NumericLiteral(50));
+	program->append<JS::FunctionDeclaration>("foo", block);
+	program->append<JS::ExpressionStatement>(
+			new JS::CallExpression("foo")
+		);
 
-	JS::AST::print_ast(e);
+	JS::Interpreter interpreter;
+	auto result = interpreter.run(*program);
+	
+	std::cout << "Interpreter returned " << result;
 	return 0;
 }
