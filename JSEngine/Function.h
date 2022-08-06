@@ -15,6 +15,8 @@ namespace JS
 		const std::string& name() const { return m_name; }
 		const ScopeNode& body() const { return m_body; }
 
+		virtual const char* class_name() const override { return "Function"; }
+
 	private:
 		virtual bool is_function() const final { return true; }
 

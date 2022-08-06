@@ -13,6 +13,7 @@ namespace JS
 		virtual ~ASTNode() {}
 		virtual const char* class_name() const = 0;
 		virtual Value execute(Interpreter&) const = 0;
+		virtual void dump(int indent) const;
 
 	protected:
 		ASTNode() {}
@@ -33,6 +34,7 @@ namespace JS
 		}
 		const std::vector<ASTNode*>& children() const { return m_children; }
 		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
 	protected:
 		ScopeNode() {}
 
@@ -66,6 +68,7 @@ namespace JS
 		std::string name() const { return m_name; }
 		const ScopeNode& body() const { return *m_body; }
 		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
 
 	private:
 		virtual const char* class_name() const override { return "FunctionDeclaration"; }
@@ -85,6 +88,7 @@ namespace JS
 		explicit ReturnStatement(Expression* argument) : m_argument(argument) {}
 		const Expression& argument() const { return *m_argument; }
 		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
 	private:
 		virtual const char* class_name() const override { return "ReturnStatement"; }
 		Expression* m_argument;
@@ -105,6 +109,7 @@ namespace JS
 			, m_rhs(rhs)
 		{}
 		virtual Value execute(Interpreter&) const override;
+		virtual void dump(int indent) const override;
 
 	private:
 		virtual const char* class_name() const override { return "BinaryExpression"; }
@@ -119,6 +124,7 @@ namespace JS
 	public:
 		explicit Literal(Value value) : m_value(value) {}
 		virtual Value execute(Interpreter&) const override { return m_value; }
+		virtual void dump(int indent) const override;
 
 	private:
 		virtual const char* class_name() const override { return "Literal"; }
@@ -139,6 +145,7 @@ namespace JS
 		explicit CallExpression(std::string name) : m_name(name) {}
 		virtual Value execute(Interpreter&) const override;
 		const std::string& name() const { return m_name; }
+		virtual void dump(int indent) const override;
 	private:
 		virtual const char* class_name() const override { return "CallExpression"; }
 		std::string m_name;

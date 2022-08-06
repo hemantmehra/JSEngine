@@ -19,11 +19,6 @@ namespace JS
 		return Value(function);
 	}
 
-	/*Value ExpressionStatement::execute(Interpreter& interpreter) const
-	{
-		return js_undefined();
-	}*/
-
 	Value CallExpression::execute(Interpreter& interpreter) const
 	{
 		auto callee = interpreter.global_object().get(name());
@@ -72,5 +67,57 @@ namespace JS
 		}
 
 		_ASSERT(false);
+	}
+
+	void print_indent(int indent)
+	{
+		for (size_t i = 0; i < 2 * indent; i++) std::cout << " ";
+	}
+
+	void ASTNode::dump(int indent) const
+	{
+		print_indent(indent);
+		std::cout << class_name() << std::endl;
+	}
+
+	void ScopeNode::dump(int indent) const
+	{
+		ASTNode::dump(indent);
+		for (auto& child : children())
+		{
+			child->dump(indent + 1);
+		}
+	}
+
+	void BinaryExpression::dump(int indent) const
+	{
+		ASTNode::dump(indent);
+		m_lhs->dump(indent + 1);
+		m_rhs->dump(indent + 1);
+	}
+
+	void CallExpression::dump(int indent) const
+	{
+		print_indent(indent);
+		std::cout << class_name() << " " << name() << std::endl;
+	}
+
+	void Literal::dump(int indent) const
+	{
+		print_indent(indent);
+		std::cout << (uint32_t) m_value.as_double() << std::endl;
+	}
+
+	void FunctionDeclaration::dump(int indent) const
+	{
+		print_indent(indent);
+		std::cout << class_name() << " " << name() << std::endl;
+		body().dump(indent + 1);
+	}
+
+	void ReturnStatement::dump(int indent) const
+	{
+		ASTNode::dump(indent);
+		argument().dump(indent + 1);
 	}
 }

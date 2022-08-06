@@ -68,6 +68,8 @@ namespace JS
 			return m_value.as_object;
 		}
 
+		std::string to_string() const;
+
 	private:
 		Type m_type{ Type::Undefined };
 
